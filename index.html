@@ -55,15 +55,15 @@
             </div>
           </div>
           
-          <!-- ตารางแสดงข้อมูลค่าการวัด (Rectifier) -->
+          <!-- ตารางแสดงข้อมูลค่าการวัด (เรียงตามลำดับใหม่) -->
           <div class="row g-2 pt-2 border-top border-primary-subtle">
             <div class="col-6">
-              <div class="history-item-label">Rectifier Voltage DC</div>
-              <div id="his-v_dc" class="history-item-value">-</div>
+              <div class="history-item-label">Rectifier Voltage AC</div>
+              <div id="his-vac" class="history-item-value">-</div>
             </div>
             <div class="col-6">
-              <div class="history-item-label">Rectifier Current DC</div>
-              <div id="his-i_dc" class="history-item-value">-</div>
+              <div class="history-item-label">Rectifier Current AC</div>
+              <div id="his-iac" class="history-item-value">-</div>
             </div>
 
             <div class="col-12 mt-2">
@@ -72,21 +72,21 @@
             </div>
 
             <div class="col-6 mt-2">
-              <div class="history-item-label">Pipe-to-Soil (ON)</div>
-              <div id="his-pson" class="history-item-value">-</div>
+              <div class="history-item-label">Rectifier Voltage DC</div>
+              <div id="his-vdc" class="history-item-value">-</div>
             </div>
             <div class="col-6 mt-2">
-              <div class="history-item-label">Pipe-to-Soil (OFF)</div>
-              <div id="his-psoff" class="history-item-value">-</div>
+              <div class="history-item-label">Rectifier Current DC</div>
+              <div id="his-idc" class="history-item-value">-</div>
             </div>
 
             <div class="col-6 mt-2">
-              <div class="history-item-label">Rectifier Voltage AC</div>
-              <div id="his-vac" class="history-item-value">-</div>
+              <div class="history-item-label">P/S Potential ON</div>
+              <div id="his-pson" class="history-item-value">-</div>
             </div>
             <div class="col-6 mt-2">
-              <div class="history-item-label">Rectifier Current AC</div>
-              <div id="his-iac" class="history-item-value">-</div>
+              <div class="history-item-label">P/S Potential OFF</div>
+              <div id="his-psoff" class="history-item-value">-</div>
             </div>
 
             <div class="col-12 mt-2">
@@ -129,36 +129,9 @@
           <input type="hidden" id="route_code">
           <input type="hidden" id="route_name">
 
-          <!-- บันทึกค่าการวัด (Field Data) -->
+          <!-- บันทึกค่าการวัด (Field Data) เรียงตามลำดับใหม่ -->
           <div class="section-title"><i class="fa-solid fa-sliders me-1"></i> บันทึกค่าการวัด (Field Data)</div>
           
-          <div class="row g-2 mb-3">
-            <div class="col-6">
-              <label class="form-label small fw-semibold">Rectifier Voltage DC (V)</label>
-              <input type="number" step="any" class="form-control" id="rectifier_voltage_dc" placeholder="0.00">
-            </div>
-            <div class="col-6">
-              <label class="form-label small fw-semibold">Rectifier Current DC (A)</label>
-              <input type="number" step="any" class="form-control" id="rectifier_current_dc" placeholder="0.00">
-            </div>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label small fw-semibold">Tap Setting</label>
-            <input type="text" class="form-control" id="tap_setting" placeholder="ระบุ Tap Setting">
-          </div>
-
-          <div class="row g-2 mb-3">
-            <div class="col-6">
-              <label class="form-label small fw-semibold">Pipe-to-Soil Potential ON (V)</label>
-              <input type="number" step="any" class="form-control" id="pipe_to_soil_on" placeholder="0.00">
-            </div>
-            <div class="col-6">
-              <label class="form-label small fw-semibold">Pipe-to-Soil Potential OFF (V)</label>
-              <input type="number" step="any" class="form-control" id="pipe_to_soil_off" placeholder="0.00">
-            </div>
-          </div>
-
           <div class="row g-2 mb-3">
             <div class="col-6">
               <label class="form-label small fw-semibold">Rectifier Voltage AC (V)</label>
@@ -171,8 +144,39 @@
           </div>
 
           <div class="mb-3">
+            <label class="form-label small fw-semibold">Tap Setting</label>
+            <input type="text" class="form-control" id="tap_setting" placeholder="ระบุ Tap Setting">
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Rectifier Voltage DC (V)</label>
+              <input type="number" step="any" class="form-control" id="rectifier_voltage_dc" placeholder="0.00">
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Rectifier Current DC (A)</label>
+              <input type="number" step="any" class="form-control" id="rectifier_current_dc" placeholder="0.00">
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">P/S Potential ON (V)</label>
+              <input type="number" step="any" class="form-control" id="pipe_to_soil_on" placeholder="0.00">
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">P/S Potential OFF (V)</label>
+              <input type="number" step="any" class="form-control" id="pipe_to_soil_off" placeholder="0.00">
+            </div>
+          </div>
+
+          <div class="mb-3">
             <label class="form-label small fw-semibold">Rectifier Adjustment</label>
-            <input type="text" class="form-control" id="rectifier_adjustment" placeholder="ระบุการปรับตั้งค่า Rectifier">
+            <select class="form-select" id="rectifier_adjustment" required>
+              <option value="">-- เลือกสถานะการปรับตั้ง --</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
           </div>
 
           <div class="mb-3">
@@ -190,7 +194,7 @@
 
   <script>
     let html5QrcodeScanner;
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxliOl9ebhAzwuS61hNm5iOv8ppyYuWeaAlxVCAy-YQfpyaByt4X6dDzu61YWNzlSPGPg/exec"; // แทนที่ด้วย URL Script ใหม่
+    const WEB_APP_URL = "ใส่_URL_Web_App_ใหม่ของคุณที่นี่"; // แทนที่ด้วย URL Script ใหม่
 
     let historyData = [];
     let currentIndex = 0;
@@ -265,13 +269,13 @@
       
       let d = historyData[currentIndex];
       document.getElementById('his-time').innerText = d.timestamp;
-      document.getElementById('his-v_dc').innerText = d.rectifier_voltage_dc;
-      document.getElementById('his-i_dc').innerText = d.rectifier_current_dc;
-      document.getElementById('his-tap').innerText = d.tap_setting;
-      document.getElementById('his-pson').innerText = d.pipe_to_soil_on;
-      document.getElementById('his-psoff').innerText = d.pipe_to_soil_off;
       document.getElementById('his-vac').innerText = d.rectifier_voltage_ac;
       document.getElementById('his-iac').innerText = d.rectifier_current_ac;
+      document.getElementById('his-tap').innerText = d.tap_setting;
+      document.getElementById('his-vdc').innerText = d.rectifier_voltage_dc;
+      document.getElementById('his-idc').innerText = d.rectifier_current_dc;
+      document.getElementById('his-pson').innerText = d.pipe_to_soil_on;
+      document.getElementById('his-psoff').innerText = d.pipe_to_soil_off;
       document.getElementById('his-adj').innerText = d.rectifier_adjustment;
       
       document.getElementById('his-index').innerText = (currentIndex + 1) + " / " + historyData.length;
@@ -307,13 +311,13 @@
         pipeline_name: document.getElementById('pipeline_name').value,
         nick_name: document.getElementById('nick_name').value,
         rectifier_kp: document.getElementById('rectifier_kp').value,
-        rectifier_voltage_dc: document.getElementById('rectifier_voltage_dc').value,
-        rectifier_current_dc: document.getElementById('rectifier_current_dc').value,
-        tap_setting: document.getElementById('tap_setting').value,
-        pipe_to_soil_on: document.getElementById('pipe_to_soil_on').value,
-        pipe_to_soil_off: document.getElementById('pipe_to_soil_off').value,
         rectifier_voltage_ac: document.getElementById('rectifier_voltage_ac').value,
         rectifier_current_ac: document.getElementById('rectifier_current_ac').value,
+        tap_setting: document.getElementById('tap_setting').value,
+        rectifier_voltage_dc: document.getElementById('rectifier_voltage_dc').value,
+        rectifier_current_dc: document.getElementById('rectifier_current_dc').value,
+        pipe_to_soil_on: document.getElementById('pipe_to_soil_on').value,
+        pipe_to_soil_off: document.getElementById('pipe_to_soil_off').value,
         rectifier_adjustment: document.getElementById('rectifier_adjustment').value,
         remark: document.getElementById('remark').value
       };
