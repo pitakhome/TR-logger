@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Field Logger - Rectifier Station</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .card { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .card-header { border-radius: 12px 12px 0 0 !important; font-weight: 600; }
+    .form-control, .form-select { border-radius: 8px; padding: 10px 14px; }
+    .section-title { font-size: 0.95rem; font-weight: 700; color: #495057; border-bottom: 2px solid #e9ecef; padding-bottom: 6px; margin-bottom: 15px; margin-top: 10px; }
+    
+    .history-box { background: #e8f4fd; border-left: 4px solid #0d6efd; border-radius: 6px; padding: 14px; font-size: 0.85rem; display: none; }
+    .history-item-label { font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1px; }
+    .history-item-value { font-size: 0.9rem; font-weight: 600; color: #212529; min-height: 22px; }
+  </style>
+</head>
+<body>
+  <div class="container py-4" style="max-width: 650px;">
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-primary text-white text-center py-3">
+        <h4><i class="fa-solid fa-bolt-lightning me-2"></i>CP Field Logger</h4>
+        <p class="mb-0 small text-white-50">ระบบบันทึกข้อมูลระบบป้องกันแคโทดิก (Rectifier Station)</p>
+      </div>
+      <div class="card-body p-4">
+        
+        <!-- ส่วนสแกน QR Code -->
+        <div class="mb-4 text-center bg-light p-3 rounded-3 border">
+          <label class="form-label fw-bold text-dark"><i class="fa-solid fa-qrcode me-1"></i> 1. สแกน QR Code จุดวัด</label>
+          <div id="reader" style="width: 100%;"></div>
+          <button type="button" class="btn btn-outline-dark btn-sm mt-2 w-100" id="btn-rescan" style="display:none;" onclick="startScanner()">
+            <i class="fa-solid fa-rotate-right me-1"></i> สแกนใหม่อีกครั้ง
+          </button>
+        </div>
+
+        <!-- กล่องแสดงข้อมูลประวัติเดือนก่อนหน้า -->
+        <div id="historyContainer" class="mb-4 history-box">
+          <div class="row align-items-center mb-2">
+            <div class="col-6">
+              <div class="fw-bold text-primary mb-0" style="font-size: 0.85rem;">
+                <i class="fa-solid fa-clock-rotate-left me-1"></i> ประวัติเดือนก่อนหน้า:
+              </div>
+              <div id="his-time" class="fw-bold text-dark" style="font-size: 0.9rem;">-</div>
+            </div>
+            <div class="col-6 text-end">
+              <div class="d-flex justify-content-end align-items-center gap-1">
+                <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="navigateHistory(1)" title="ก่อนหน้า">◀</button>
+                <span id="his-index" class="fw-bold text-dark px-1" style="font-size: 0.9rem; white-space: nowrap;">1 / 1</span>
+                <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="navigateHistory(-1)" title="ถัดไป">▶</button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- ตารางแสดงข้อมูลค่าการวัด (Rectifier) -->
+          <div class="row g-2 pt-2 border-top border-primary-subtle">
+            <div class="col-6">
+              <div class="history-item-label">Rectifier Voltage DC</div>
+              <div id="his-v_dc" class="history-item-value">-</div>
+            </div>
+            <div class="col-6">
+              <div class="history-item-label">Rectifier Current DC</div>
+              <div id="his-i_dc" class="history-item-value">-</div>
+            </div>
+
+            <div class="col-12 mt-2">
+              <div class="history-item-label">Tap Setting</div>
+              <div id="his-tap" class="history-item-value">-</div>
+            </div>
+
+            <div class="col-6 mt-2">
+              <div class="history-item-label">Pipe-to-Soil (ON)</div>
+              <div id="his-pson" class="history-item-value">-</div>
+            </div>
+            <div class="col-6 mt-2">
+              <div class="history-item-label">Pipe-to-Soil (OFF)</div>
+              <div id="his-psoff" class="history-item-value">-</div>
+            </div>
+
+            <div class="col-6 mt-2">
+              <div class="history-item-label">Rectifier Voltage AC</div>
+              <div id="his-vac" class="history-item-value">-</div>
+            </div>
+            <div class="col-6 mt-2">
+              <div class="history-item-label">Rectifier Current AC</div>
+              <div id="his-iac" class="history-item-value">-</div>
+            </div>
+
+            <div class="col-12 mt-2">
+              <div class="history-item-label">Rectifier Adjustment</div>
+              <div id="his-adj" class="history-item-value">-</div>
+            </div>
+          </div>
+        </div>
+
+        <form id="cpForm" onsubmit="submitForm(event)">
+          
+          <!-- ข้อมูลจุดวัด (Readonly) -->
+          <div class="section-title"><i class="fa-solid fa-location-dot me-1"></i> ข้อมูลจุดวัด (จาก QR Code)</div>
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small text-muted">Division</label>
+              <input type="text" class="form-control form-control-sm bg-light" id="division" required readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small text-muted">Asset Owner</label>
+              <input type="text" class="form-control form-control-sm bg-light" id="asset_owner" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small text-muted">Route Code / Name</label>
+              <input type="text" class="form-control form-control-sm bg-light fw-bold text-primary" id="route_info" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small text-muted">Pipeline Name</label>
+              <input type="text" class="form-control form-control-sm bg-light" id="pipeline_name" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small text-muted">Nick Name</label>
+              <input type="text" class="form-control form-control-sm bg-light" id="nick_name" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small text-muted">Rectifier KP</label>
+              <input type="text" class="form-control form-control-sm bg-light fw-bold text-primary" id="rectifier_kp" readonly>
+            </div>
+          </div>
+          <input type="hidden" id="route_code">
+          <input type="hidden" id="route_name">
+
+          <!-- บันทึกค่าการวัด (Field Data) -->
+          <div class="section-title"><i class="fa-solid fa-sliders me-1"></i> บันทึกค่าการวัด (Field Data)</div>
+          
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Rectifier Voltage DC (V)</label>
+              <input type="number" step="any" class="form-control" id="rectifier_voltage_dc" placeholder="0.00">
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Rectifier Current DC (A)</label>
+              <input type="number" step="any" class="form-control" id="rectifier_current_dc" placeholder="0.00">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Tap Setting</label>
+            <input type="text" class="form-control" id="tap_setting" placeholder="ระบุ Tap Setting">
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Pipe-to-Soil Potential ON (V)</label>
+              <input type="number" step="any" class="form-control" id="pipe_to_soil_on" placeholder="0.00">
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Pipe-to-Soil Potential OFF (V)</label>
+              <input type="number" step="any" class="form-control" id="pipe_to_soil_off" placeholder="0.00">
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Rectifier Voltage AC (V)</label>
+              <input type="number" step="any" class="form-control" id="rectifier_voltage_ac" placeholder="0.00">
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Rectifier Current AC (A)</label>
+              <input type="number" step="any" class="form-control" id="rectifier_current_ac" placeholder="0.00">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Rectifier Adjustment</label>
+            <input type="text" class="form-control" id="rectifier_adjustment" placeholder="ระบุการปรับตั้งค่า Rectifier">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Remark (หมายเหตุ)</label>
+            <textarea class="form-control" id="remark" rows="2" placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-success w-100 py-3 fw-bold shadow-sm" id="submitBtn">
+            <i class="fa-solid fa-floppy-disk me-2"></i> บันทึกข้อมูล
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let html5QrcodeScanner;
+    const WEB_APP_URL = "ใส่_URL_Web_App_ใหม่ของคุณที่นี่"; // แทนที่ด้วย URL Script ใหม่
+
+    let historyData = [];
+    let currentIndex = 0;
+
+    function onScanSuccess(decodedText, decodedResult) {
+      let arr = decodedText.split('|');
+      
+      let division = arr[0] || '';
+      let assetOwner = arr[1] || '';
+      let routeCode = arr[2] || '';
+      let routeName = arr[3] || '';
+      let pipelineName = arr[4] || '';
+      let nickName = arr[5] || '';
+      let rectifierKp = arr[6] || '';
+      
+      document.getElementById('division').value = division;
+      document.getElementById('asset_owner').value = assetOwner;
+      document.getElementById('route_code').value = routeCode;
+      document.getElementById('route_name').value = routeName;
+      document.getElementById('route_info').value = routeCode + ' / ' + routeName;
+      document.getElementById('pipeline_name').value = pipelineName;
+      document.getElementById('nick_name').value = nickName;
+      document.getElementById('rectifier_kp').value = rectifierKp;
+      
+      html5QrcodeScanner.clear().then(_ => {
+        document.getElementById('btn-rescan').style.display = 'block';
+      }).catch(error => {
+        console.error("Failed to clear scanner. ", error);
+      });
+
+      fetchPreviousDataJSONP(routeCode, rectifierKp);
+    }
+
+    function fetchPreviousDataJSONP(routeCode, rectifierKp) {
+      if (!routeCode || !rectifierKp) return;
+      
+      let d = new Date();
+      let currentMonth = d.getMonth() + 1;
+      let currentYear = d.getFullYear();
+      
+      let targetMonth = currentMonth - 1;
+      let targetYear = currentYear;
+      
+      if (targetMonth === 0) {
+        targetMonth = 12;
+        targetYear -= 1;
+      }
+      
+      let oldScript = document.getElementById('jsonpScript');
+      if (oldScript) oldScript.remove();
+
+      let script = document.createElement('script');
+      script.id = 'jsonpScript';
+      script.src = `${WEB_APP_URL}?route_code=${encodeURIComponent(routeCode)}&rectifier_kp=${encodeURIComponent(rectifierKp)}&month=${targetMonth}&year=${targetYear}&callback=showHistoryData`;
+      document.body.appendChild(script);
+    }
+
+    function showHistoryData(data) {
+      historyData = data || [];
+      currentIndex = 0;
+      
+      if(historyData.length > 0) {
+        updateDisplay();
+        document.getElementById('historyContainer').style.display = 'block';
+      } else {
+        document.getElementById('historyContainer').style.display = 'none';
+      }
+    }
+
+    function updateDisplay() {
+      if (historyData.length === 0) return;
+      
+      let d = historyData[currentIndex];
+      document.getElementById('his-time').innerText = d.timestamp;
+      document.getElementById('his-v_dc').innerText = d.rectifier_voltage_dc;
+      document.getElementById('his-i_dc').innerText = d.rectifier_current_dc;
+      document.getElementById('his-tap').innerText = d.tap_setting;
+      document.getElementById('his-pson').innerText = d.pipe_to_soil_on;
+      document.getElementById('his-psoff').innerText = d.pipe_to_soil_off;
+      document.getElementById('his-vac').innerText = d.rectifier_voltage_ac;
+      document.getElementById('his-iac').innerText = d.rectifier_current_ac;
+      document.getElementById('his-adj').innerText = d.rectifier_adjustment;
+      
+      document.getElementById('his-index').innerText = (currentIndex + 1) + " / " + historyData.length;
+    }
+
+    function navigateHistory(step) {
+      currentIndex += step;
+      if (currentIndex < 0) currentIndex = 0;
+      if (currentIndex >= historyData.length) currentIndex = historyData.length - 1;
+      updateDisplay();
+    }
+
+    function startScanner() {
+      document.getElementById('btn-rescan').style.display = 'none';
+      document.getElementById('historyContainer').style.display = 'none';
+      html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", { fps: 10, qrbox: { width: 250, height: 250 } });
+      html5QrcodeScanner.render(onScanSuccess);
+    }
+
+    window.onload = function() {
+      startScanner();
+    };
+
+    function submitForm(e) {
+      e.preventDefault();
+      
+      let data = {
+        division: document.getElementById('division').value,
+        asset_owner: document.getElementById('asset_owner').value,
+        route_code: document.getElementById('route_code').value,
+        route_name: document.getElementById('route_name').value,
+        pipeline_name: document.getElementById('pipeline_name').value,
+        nick_name: document.getElementById('nick_name').value,
+        rectifier_kp: document.getElementById('rectifier_kp').value,
+        rectifier_voltage_dc: document.getElementById('rectifier_voltage_dc').value,
+        rectifier_current_dc: document.getElementById('rectifier_current_dc').value,
+        tap_setting: document.getElementById('tap_setting').value,
+        pipe_to_soil_on: document.getElementById('pipe_to_soil_on').value,
+        pipe_to_soil_off: document.getElementById('pipe_to_soil_off').value,
+        rectifier_voltage_ac: document.getElementById('rectifier_voltage_ac').value,
+        rectifier_current_ac: document.getElementById('rectifier_current_ac').value,
+        rectifier_adjustment: document.getElementById('rectifier_adjustment').value,
+        remark: document.getElementById('remark').value
+      };
+
+      if(!data.division) {
+        alert('กรุณาสแกน QR Code ก่อนบันทึกข้อมูล');
+        return;
+      }
+
+      let btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> กำลังบันทึก...';
+
+      fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(response => {
+        alert('บันทึกข้อมูลสำเร็จ!');
+        document.getElementById('cpForm').reset();
+        document.getElementById('historyContainer').style.display = 'none';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i> บันทึกข้อมูล';
+        startScanner();
+      })
+      .catch(error => {
+        alert('เกิดข้อผิดพลาด: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i> บันทึกข้อมูล';
+      });
+    }
+  </script>
+</body>
+</html>
