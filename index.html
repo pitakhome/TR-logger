@@ -287,11 +287,23 @@
     function startScanner() {
       document.getElementById('btn-rescan').style.display = 'none';
       document.getElementById('historyContainer').style.display = 'none';
+      
+      // กำหนดค่าคอนฟิกให้รองรับทั้งกล้องและการอัปโหลดไฟล์รูปภาพอย่างสมบูรณ์
       html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader", { fps: 10, qrbox: { width: 250, height: 250 } });
+        "reader", 
+        { 
+          fps: 10, 
+          qrbox: { width: 250, height: 250 },
+          supportedScanTypes: [
+            Html5QrcodeScanType.SCAN_TYPE_CAMERA, 
+            Html5QrcodeScanType.SCAN_TYPE_FILE
+          ]
+        },
+        false // verbose mode
+      );
+      
       html5QrcodeScanner.render(onScanSuccess);
     }
-
     window.onload = function() {
       startScanner();
     };
