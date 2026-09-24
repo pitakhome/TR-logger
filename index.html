@@ -28,10 +28,20 @@
       </div>
       <div class="card-body p-4">
         
-        <!-- ส่วนสแกน QR Code -->
+        <!-- ส่วนสแกน QR Code และเลือกไฟล์ -->
         <div class="mb-4 text-center bg-light p-3 rounded-3 border">
           <label class="form-label fw-bold text-dark"><i class="fa-solid fa-qrcode me-1"></i> 1. สแกน QR Code จุดวัด</label>
+          
           <div id="reader" style="width: 100%;"></div>
+
+          <!-- ปุ่มเลือกรูปภาพจากคลัง (โครงสร้างมาตรฐานเดียวกับโค้ดตัวแรก) -->
+          <div class="mt-3">
+            <label for="qr-file-input" class="btn btn-outline-primary btn-sm w-100">
+              <i class="fa-solid fa-image me-1"></i> เลือกรูปภาพ QR Code จากคลัง/อัลบั้ม
+            </label>
+            <input type="file" id="qr-file-input" accept="image/*" style="display: none;" onchange="handleImageFile(this)">
+          </div>
+
           <button type="button" class="btn btn-outline-dark btn-sm mt-2 w-100" id="btn-rescan" style="display:none;" onclick="startScanner()">
             <i class="fa-solid fa-rotate-right me-1"></i> สแกนใหม่อีกครั้ง
           </button>
@@ -55,7 +65,6 @@
             </div>
           </div>
           
-          <!-- ตารางแสดงข้อมูลค่าการวัด (เรียงตามลำดับใหม่) -->
           <div class="row g-2 pt-2 border-top border-primary-subtle">
             <div class="col-6">
               <div class="history-item-label">Rectifier Voltage AC</div>
@@ -65,12 +74,10 @@
               <div class="history-item-label">Rectifier Current AC</div>
               <div id="his-iac" class="history-item-value">-</div>
             </div>
-
             <div class="col-12 mt-2">
               <div class="history-item-label">Tap Setting</div>
               <div id="his-tap" class="history-item-value">-</div>
             </div>
-
             <div class="col-6 mt-2">
               <div class="history-item-label">Rectifier Voltage DC</div>
               <div id="his-vdc" class="history-item-value">-</div>
@@ -79,7 +86,6 @@
               <div class="history-item-label">Rectifier Current DC</div>
               <div id="his-idc" class="history-item-value">-</div>
             </div>
-
             <div class="col-6 mt-2">
               <div class="history-item-label">P/S Potential ON</div>
               <div id="his-pson" class="history-item-value">-</div>
@@ -88,7 +94,6 @@
               <div class="history-item-label">P/S Potential OFF</div>
               <div id="his-psoff" class="history-item-value">-</div>
             </div>
-
             <div class="col-12 mt-2">
               <div class="history-item-label">Rectifier Adjustment</div>
               <div id="his-adj" class="history-item-value">-</div>
@@ -97,8 +102,6 @@
         </div>
 
         <form id="cpForm" onsubmit="submitForm(event)">
-          
-          <!-- ข้อมูลจุดวัด (Readonly) -->
           <div class="section-title"><i class="fa-solid fa-location-dot me-1"></i> ข้อมูลจุดวัด (จาก QR Code)</div>
           <div class="row g-2 mb-3">
             <div class="col-md-6">
@@ -129,7 +132,6 @@
           <input type="hidden" id="route_code">
           <input type="hidden" id="route_name">
 
-          <!-- บันทึกค่าการวัด (Field Data) เรียงตามลำดับใหม่ -->
           <div class="section-title"><i class="fa-solid fa-sliders me-1"></i> บันทึกค่าการวัด (Field Data)</div>
           
           <div class="row g-2 mb-3">
@@ -193,12 +195,13 @@
   </div>
 
   <script>
-    let html5QrcodeScanner;
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxliOl9ebhAzwuS61hNm5iOv8ppyYuWeaAlxVCAy-YQfpyaByt4X6dDzu61YWNzlSPGPg/exec"; // แทนที่ด้วย URL Script ใหม่
+    let html5QrcodeScanner = null;
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxliOl9ebhAzwuS61hNm5iOv8ppyYuWeaAlxVCAy-YQfpyaByt4X6dDzu61YWNzlSPGPg/exec";
 
     let historyData = [];
     let currentIndex = 0;
 
+    // ฟังก์ชันจัดการเมื่อสแกน QR Code สำเร็จ (ใช้ร่วมกันทั้งกล้องและไฟล์)
     function onScanSuccess(decodedText, decodedResult) {
       let arr = decodedText.split('|');
       
@@ -219,13 +222,37 @@
       document.getElementById('nick_name').value = nickName;
       document.getElementById('rectifier_kp').value = rectifierKp;
       
-      html5QrcodeScanner.clear().then(_ => {
+      // ปิดกล้อง / เคลียร์สแกนเนอร์เมื่อสำเร็จ
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().then(() => {
+          document.getElementById('btn-rescan').style.display = 'block';
+        }).catch(error => {
+          console.error("Failed to clear scanner. ", error);
+          document.getElementById('btn-rescan').style.display = 'block';
+        });
+      } else {
         document.getElementById('btn-rescan').style.display = 'block';
-      }).catch(error => {
-        console.error("Failed to clear scanner. ", error);
-      });
+      }
 
       fetchPreviousDataJSONP(routeCode, rectifierKp);
+    }
+
+    // ฟังก์ชันสแกนไฟล์ภาพด้วยโครงสร้างมาตรฐานเดียวกับโค้ดตัวแรก
+    function handleImageFile(input) {
+      if (input.files && input.files[0]) {
+        let file = input.files[0];
+        const html5QrCode = new Html5Qrcode("reader");
+        
+        html5QrCode.scanFile(file, true)
+          .then(decodedText => {
+            onScanSuccess(decodedText, null);
+            input.value = ""; 
+          })
+          .catch(err => {
+            alert("ไม่พบ QR Code ในรูปภาพนี้ กรุณาเลือกรูปภาพที่เห็น QR Code ชัดเจน");
+            input.value = "";
+          });
+      }
     }
 
     function fetchPreviousDataJSONP(routeCode, rectifierKp) {
@@ -268,15 +295,15 @@
       if (historyData.length === 0) return;
       
       let d = historyData[currentIndex];
-      document.getElementById('his-time').innerText = d.timestamp;
-      document.getElementById('his-vac').innerText = d.rectifier_voltage_ac;
-      document.getElementById('his-iac').innerText = d.rectifier_current_ac;
-      document.getElementById('his-tap').innerText = d.tap_setting;
-      document.getElementById('his-vdc').innerText = d.rectifier_voltage_dc;
-      document.getElementById('his-idc').innerText = d.rectifier_current_dc;
-      document.getElementById('his-pson').innerText = d.pipe_to_soil_on;
-      document.getElementById('his-psoff').innerText = d.pipe_to_soil_off;
-      document.getElementById('his-adj').innerText = d.rectifier_adjustment;
+      document.getElementById('his-time').innerText = d.timestamp || '-';
+      document.getElementById('his-vac').innerText = d.rectifier_voltage_ac || '-';
+      document.getElementById('his-iac').innerText = d.rectifier_current_ac || '-';
+      document.getElementById('his-tap').innerText = d.tap_setting || '-';
+      document.getElementById('his-vdc').innerText = d.rectifier_voltage_dc || '-';
+      document.getElementById('his-idc').innerText = d.rectifier_current_idc || '-';
+      document.getElementById('his-pson').innerText = d.pipe_to_soil_on || '-';
+      document.getElementById('his-psoff').innerText = d.pipe_to_soil_off || '-';
+      document.getElementById('his-adj').innerText = d.rectifier_adjustment || '-';
       
       document.getElementById('his-index').innerText = (currentIndex + 1) + " / " + historyData.length;
     }
@@ -292,29 +319,17 @@
       document.getElementById('btn-rescan').style.display = 'none';
       document.getElementById('historyContainer').style.display = 'none';
       
-      // ถ้ามีตัวสแกนค้างอยู่ให้เคลียร์ก่อน
       if (html5QrcodeScanner) {
         try {
-          html5QrcodeScanner.clear();
+          html5QrcodeScanner.clear().catch(() => {});
         } catch (e) {}
       }
 
-      // สร้าง Scanner โดยกำหนด config เพิ่มเติมเพื่อให้รองรับการสแกนไฟล์ได้เสถียรขึ้น
       html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader", 
-        { 
-          fps: 10, 
-          qrbox: { width: 250, height: 250 },
-          supportedScanTypes: [
-            Html5QrcodeScanType.SCAN_TYPE_CAMERA,
-            Html5QrcodeScanType.SCAN_TYPE_FILE // เปิดใช้งานการสแกนจากไฟล์อย่างเป็นทางการ
-          ]
-        }, 
-        false
-      );
+        "reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
       
       html5QrcodeScanner.render(onScanSuccess, (errorMessage) => {
-        // ซ่อน Error จุกจิกเวลากล้องกำลังหา QR Code เพื่อไม่ให้จอแสดงผล Error สีแดงกวนใจ
+        // ละเว้นการแสดง Error ถี่ยิบเวลากล้องกำลังค้นหา QR Code
       });
     }
 
