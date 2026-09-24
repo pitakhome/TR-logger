@@ -291,9 +291,31 @@
     function startScanner() {
       document.getElementById('btn-rescan').style.display = 'none';
       document.getElementById('historyContainer').style.display = 'none';
+      
+      // ถ้ามีตัวสแกนค้างอยู่ให้เคลียร์ก่อน
+      if (html5QrcodeScanner) {
+        try {
+          html5QrcodeScanner.clear();
+        } catch (e) {}
+      }
+
+      // สร้าง Scanner โดยกำหนด config เพิ่มเติมเพื่อให้รองรับการสแกนไฟล์ได้เสถียรขึ้น
       html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader", { fps: 10, qrbox: { width: 250, height: 250 } });
-      html5QrcodeScanner.render(onScanSuccess);
+        "reader", 
+        { 
+          fps: 10, 
+          qrbox: { width: 250, height: 250 },
+          supportedScanTypes: [
+            Html5QrcodeScanType.SCAN_TYPE_CAMERA,
+            Html5QrcodeScanType.SCAN_TYPE_FILE // เปิดใช้งานการสแกนจากไฟล์อย่างเป็นทางการ
+          ]
+        }, 
+        false
+      );
+      
+      html5QrcodeScanner.render(onScanSuccess, (errorMessage) => {
+        // ซ่อน Error จุกจิกเวลากล้องกำลังหา QR Code เพื่อไม่ให้จอแสดงผล Error สีแดงกวนใจ
+      });
     }
 
     window.onload = function() {
